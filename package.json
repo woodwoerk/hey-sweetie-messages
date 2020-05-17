@@ -10,7 +10,6 @@
   "license": "ISC",
   "dependencies": {
     "csvtojson": "^2.0.10",
-    "html-pdf": "^2.2.0",
     "lodash": "^4.17.15",
     "puppeteer": "^3.0.4"
   }
