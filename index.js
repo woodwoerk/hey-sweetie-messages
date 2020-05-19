@@ -37,7 +37,7 @@ async function createPDF() {
     console.log('Creating those messages...')
 
     const filePath = process.argv[2]
-    
+
     if (!filePath) {
         throw new Error("A csv file wasn't specified")
     }
@@ -58,7 +58,7 @@ async function createPDF() {
                     fs.readFileSync(path.resolve(__dirname, './fonts/DK_Lemon_Yellow_Sun.otf')).toString('base64')
                   }") format("opentype");
             }
-            
+
             body {
                 font-family: 'Lemon Yellow Sun';
                 -webkit-print-color-adjust: exact;
@@ -107,12 +107,12 @@ async function createPDF() {
 
                     // Remove "Personalisation:" and replace multiple linebreaks with a single linebreak
                     const message = _.unescape(box.Variations.replace(/^Personalisation:/, '').replace(/(\r\n|\n){2,}/g, '\r\n'))
-                    
+
                     // Count the number of line breaks to help guesstimate to message length
                     const lineBreaks = message.match(/(\r\n|\n)/g)
                     const lineBreakCount = lineBreaks ? lineBreaks.length : 0
                     const messageLength = Math.min(maxMessageLength, message.length + (15 * lineBreakCount))
-                    
+
                     const fontSize = Math.max(
                         minFontSize,
                         Math.min(
@@ -137,13 +137,14 @@ async function createPDF() {
 	});
 
 	const page = await browser.newPage();
-	
-	await page.goto(`data:text/html;charset=UTF-8,${html}`, {
-		waitUntil: 'networkidle0'
-    });
-    
+
+	//await page.goto(`data:text/html;charset=UTF-8,${html}`, {
+	//	waitUntil: 'networkidle0'
+  //  });
+    await page.setContent(html, {waitUntil: 'networkidle0'});
+
     await page.pdf(pdfOptions);
-    
+
     await browser.close();
 
     console.log(`
