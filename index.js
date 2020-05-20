@@ -3,6 +3,9 @@ const path = require('path')
 const puppeteer = require('puppeteer')
 const _ = require('lodash')
 const csvToJson = require('csvtojson')
+const isYesterday = require('date-fns/isYesterday')
+const subDays = require('date-fns/subDays')
+const format = require('date-fns/format')
 
 const maxMessageLength = 250
 const borderColor = 'pink'
@@ -253,17 +256,49 @@ const createPostageLabelsHtml = (orders) => {
   return html
 }
 
+const isOrderYesterday = (order) => {
+  const [month, day, year] = order['Sale Date'].split('/') // Etsy uses American date with short year YY
+  const orderDate = new Date(`20${year}`, month - 1, day, 12) // Check against midday to avoid timezone changing the day
+
+  return isYesterday(orderDate)
+}
+
+const hasNotBeenPosted = (order) => !order['Date Posted']
+
 async function createPDF() {
-  console.log('Creating those PDFs...')
   console.log('')
+  console.log('Creating those PDFs...')
 
   const filePath = process.argv[2]
+  const shouldExportAll = process.argv.includes('--all')
 
   if (!filePath) {
     throw new Error("A csv file wasn't specified")
   }
 
-  const orders = await csvToJson().fromFile(filePath)
+  console.log(
+    shouldExportAll
+      ? 'Using all orders...'
+      : `Using orders from yesterday - ${format(
+          subDays(new Date(), 1),
+          'EEE, dd/MM/yyyy'
+        )}...`
+  )
+  console.log('')
+
+  let orders = await csvToJson().fromFile(filePath)
+
+  orders = orders.filter(hasNotBeenPosted)
+
+  if (!shouldExportAll) {
+    orders = orders.filter(isOrderYesterday)
+  }
+
+  if (!orders.length) {
+    console.log('No orders were found for printing! :(')
+
+    return
+  }
 
   const messagesHtml = createMessagesHtml(orders)
   const postageLabelsHtml = createPostageLabelsHtml(orders)
