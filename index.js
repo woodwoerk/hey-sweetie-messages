@@ -184,21 +184,16 @@ const createAddressLabel = (order) =>
     .filter(Boolean)
     .join('\n')
 
-const getOrderAddresses = (orders) =>
-  orders.reduce((allAddresses, order) => {
-    const quantity = parseInt(order.Quantity, 10) || 1
-    const label = createAddressLabel(order)
+// Creates a new item in the array for each order with a quantity of more than 1
+const reduceMultipleQuantityOrders = (allOrders, order) => {
+  const quantity = parseInt(order.Quantity, 10) || 1
 
-    if (quantity > 1) {
-      return allAddresses.concat(Array(quantity).fill(label))
-    }
-
-    return [...allAddresses, label]
-  }, [])
+  return allOrders.concat(Array(quantity).fill(order))
+}
 
 const createPostageLabelsHtml = (orders) => {
   // Chunk orders into groups of 14, so that 14 labels are displayed per page
-  const pages = chunkArray(getOrderAddresses(orders), 14)
+  const pages = chunkArray(orders.map(createAddressLabel), 14)
 
   console.log(
     `${orders.length} postage labels found on ${pages.length} pages...`
@@ -278,8 +273,8 @@ async function createPDF() {
 
   console.log(
     shouldExportAll
-      ? 'Using all orders...'
-      : `Using orders from yesterday - ${format(
+      ? 'Using all orders including today...'
+      : `Using past orders until ${format(
           subDays(new Date(), 1),
           'EEE, dd/MM/yyyy'
         )}...`
@@ -294,14 +289,14 @@ async function createPDF() {
     orders = orders.filter(isOrderInPast)
   }
 
+  // Add items to the array for orders with multiple quantity to make sure we print multiple labels and messages
+  orders = orders.reduce(reduceMultipleQuantityOrders, [])
+
   if (!orders.length) {
     console.log('No orders were found for printing! :(')
 
     return
   }
-
-  const messagesHtml = createMessagesHtml(orders)
-  const postageLabelsHtml = createPostageLabelsHtml(orders)
 
   const browser = await puppeteer.launch({
     args: ['--no-sandbox'],
@@ -313,12 +308,14 @@ async function createPDF() {
   console.log('')
 
   // Create personalised messages pdf
+  const messagesHtml = createMessagesHtml(orders)
   await page.setContent(messagesHtml, { waitUntil: 'networkidle0' })
   await page.pdf(messagesPdfOptions)
 
   console.log(`Personalised messages done! ${messagesPdfName} created`)
 
   // Create address labels pdf
+  const postageLabelsHtml = createPostageLabelsHtml(orders)
   await page.setContent(postageLabelsHtml, { waitUntil: 'networkidle0' })
   await page.pdf(postageLabelsPdfOptions)
 
