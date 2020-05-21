@@ -253,7 +253,7 @@ const createPostageLabelsHtml = (orders) => {
 
 const isOrderInPast = (order) => {
   const [month, day, year] = order['Sale Date'].split('/') // Etsy uses American date with short year YY
-  const orderDate = new Date(`20${year}`, month - 1, day, 12) // Check against midday to avoid timezone changing the day
+  const orderDate = new Date(`20${year}`, month - 1, day, 23, 59, 59) // Check against end of day
 
   return isPast(orderDate)
 }
