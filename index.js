@@ -312,6 +312,7 @@ async function createPDF() {
   await page.pdf(messagesPdfOptions)
 
   console.log(`Personalised messages done! ${messagesPdfName} created`)
+  console.log('')
 
   // Create address labels pdf
   const postageLabelsHtml = createPostageLabelsHtml(orders)
