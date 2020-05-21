@@ -3,7 +3,7 @@ const path = require('path')
 const puppeteer = require('puppeteer')
 const _ = require('lodash')
 const csvToJson = require('csvtojson')
-const isYesterday = require('date-fns/isYesterday')
+const isPast = require('date-fns/isPast')
 const subDays = require('date-fns/subDays')
 const format = require('date-fns/format')
 
@@ -214,7 +214,7 @@ const createPostageLabelsHtml = (orders) => {
       row-gap: 0px;
       grid-template-rows: repeat(7, 1fr);
     }
-  
+
     .box {
       min-height: 0;
       display: flex;
@@ -256,11 +256,11 @@ const createPostageLabelsHtml = (orders) => {
   return html
 }
 
-const isOrderYesterday = (order) => {
+const isOrderInPast = (order) => {
   const [month, day, year] = order['Sale Date'].split('/') // Etsy uses American date with short year YY
   const orderDate = new Date(`20${year}`, month - 1, day, 12) // Check against midday to avoid timezone changing the day
 
-  return isYesterday(orderDate)
+  return isPast(orderDate)
 }
 
 const hasNotBeenPosted = (order) => !order['Date Posted']
@@ -291,7 +291,7 @@ async function createPDF() {
   orders = orders.filter(hasNotBeenPosted)
 
   if (!shouldExportAll) {
-    orders = orders.filter(isOrderYesterday)
+    orders = orders.filter(isOrderInPast)
   }
 
   if (!orders.length) {
@@ -327,14 +327,22 @@ async function createPDF() {
   await browser.close()
 
   console.log(`
-     meow
-
-    |\\---/|
-    | ,_, |
-     \\_\`_/-..----.
-  ___/ \`   ' ,""+ \\
- (__...'   __\\    |\`.___.';
-   (_,...'(_,.\`__)/'.....+    
+        _..._
+      .'     '.      _
+     /    .-""-/   _/ /
+   .-|   /:.   |  |   |
+   |  /  |:.   /.-'-./
+   | .-'-;:__.'    =/
+   .'=  *=|     _.='
+  /   _.  |    ;
+ ;-.-'|    |   |
+/   | |    _|  _|
+|__/'._;.  ==' ==|
+         |    |   |
+         /    /   /
+         /-._/-._/
+         |   |  |
+          -._/._/
    `)
 
   console.log('All done, ship them sweeties yo!')
