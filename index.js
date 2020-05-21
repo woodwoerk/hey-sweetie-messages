@@ -30,9 +30,9 @@ const messagesPdfOptions = {
 const postageLabelsPdfOptions = {
   ...messagesPdfOptions,
   margin: {
-    top: '42px',
+    top: '45px',
     right: '12px',
-    bottom: '41px',
+    bottom: '45px',
     left: '12px',
   },
   path: path.join(__dirname, 'pdf', postageLabelsPdfName),
