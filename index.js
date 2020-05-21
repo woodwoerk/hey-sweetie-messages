@@ -279,7 +279,6 @@ async function createPDF() {
           'EEE, dd/MM/yyyy'
         )}...`
   )
-  console.log('')
 
   let orders = await csvToJson().fromFile(filePath)
 
