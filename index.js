@@ -3,9 +3,6 @@ const path = require('path')
 const puppeteer = require('puppeteer')
 const _ = require('lodash')
 const csvToJson = require('csvtojson')
-const isPast = require('date-fns/isPast')
-const subDays = require('date-fns/subDays')
-const format = require('date-fns/format')
 
 const maxMessageLength = 250
 const borderColor = 'pink'
@@ -90,9 +87,7 @@ const chunkArray = (arr, size) =>
 
 const createMessagesHtml = (orders) => {
   // Only use orders that have a personalised message
-  orders = orders.filter(
-    (box) => !!box.Variations && box.Variations.match(/^Personalisation:/)
-  )
+  orders = orders.filter((order) => !!order.message)
 
   // Chunk orders into groups of 6, so that 6 messages are displayed per page
   const pages = chunkArray(orders, 6)
@@ -126,16 +121,14 @@ const createMessagesHtml = (orders) => {
       (page) => `
       <div class="page">
       ${page
-        .map((box) => {
+        .map((order) => {
           const minFontSize = 1.25
           const maxFontSize = 3
 
-          // Remove "Personalisation:" and replace multiple linebreaks with a single linebreak
+          // Replace multiple linebreaks with a single linebreak
+          // TODO: How do the linebreaks work in Wix and the bulk orders?
           const message = _.unescape(
-            box.Variations.replace(/^Personalisation:/, '').replace(
-              /(\r\n|\n){2,}/g,
-              '\r\n'
-            )
+            order.message.replace(/(\r\n|\n){2,}/g, '\r\n')
           )
 
           // Count the number of line breaks to help guesstimate to message length
@@ -174,19 +167,19 @@ const createMessagesHtml = (orders) => {
 
 const createAddressLabel = (order) =>
   [
-    order['Delivery Name'],
-    order['Delivery Address1'],
-    order['Delivery Address2'],
-    order['Delivery City'],
-    order['Delivery State'],
-    order['Delivery Zipcode'],
+    order['name'],
+    order['address1'],
+    order['address2'],
+    order['address3'],
+    order['address4'],
+    order['postcode'],
   ]
     .filter(Boolean)
     .join('\n')
 
 // Creates a new item in the array for each order with a quantity of more than 1
 const reduceMultipleQuantityOrders = (allOrders, order) => {
-  const quantity = parseInt(order.Quantity, 10) || 1
+  const quantity = parseInt(order.quantity, 10) || 1
 
   return allOrders.concat(Array(quantity).fill(order))
 }
@@ -251,51 +244,93 @@ const createPostageLabelsHtml = (orders) => {
   return html
 }
 
-const isOrderInPast = (order) => {
-  const [month, day, year] = order['Sale Date'].split('/') // Etsy uses American date with short year YY
-  const orderDate = new Date(`20${year}`, month - 1, day, 23, 59, 59) // Check against end of day
+const isAwaitingFulfillment = (order, origin) => {
+  if (origin === 'wix') {
+    return order.Fulfillment === 'notFulfilled'
+  }
 
-  return isPast(orderDate)
+  if (origin === 'etsy') {
+    return !order['Date Posted']
+  }
+
+  return true
 }
 
-const hasNotBeenPosted = (order) => !order['Date Posted']
+// Check against some random fields unique to each website to figure out the service used
+const getOrderOrigin = (order) => {
+  if (order['Transaction ID']) {
+    return 'etsy'
+  }
+
+  if (!!order['Order #']) {
+    return 'wix'
+  }
+
+  return 'bulk'
+}
+
+const stripMessageHelpText = (message, origin) => {
+  if (!message) {
+    return undefined
+  }
+
+  if (origin === 'etsy' || origin === 'wix') {
+    // Etsy and Wix both prepend the help text to the message followed by ':'
+    const [helpText, ...messageParts] = message.split(':')
+
+    return messageParts.join(':')
+  }
+
+  return message
+}
+
+// Make order data consistent regardless of whether it's from wix, etsy or the bulk csv
+const formatOrder = (o) => {
+  const origin = getOrderOrigin(o)
+
+  return {
+    name: o['Delivery Name'] || o['Delivery Customer'] || o.name,
+    address1:
+      o['Delivery Address1'] || o['Delivery Street Name&Number'] || o.address1,
+    address2: o['Delivery Address2'] || o.address2,
+    address3: o['Delivery City'] || o['Delivery City'] || o.address3,
+    address4: o['Delivery State'] || o.address4,
+    postcode: o['Delivery Zipcode'] || o['Delivery Zip Code'] || o.postcode,
+    message: stripMessageHelpText(
+      o.Variations || o["Item's Custom Text"] || o.message,
+      origin
+    ),
+    awaitingFulfillment: isAwaitingFulfillment(o, origin),
+    origin,
+    quantity: o.Quantity || o.Qty || o.quantity || 1,
+  }
+}
 
 async function createPDF() {
-  console.log('')
-  console.log('Creating those PDFs...')
-
   const filePath = process.argv[2]
-  const shouldExportAll = process.argv.includes('--all')
 
   if (!filePath) {
     throw new Error("A csv file wasn't specified")
   }
 
-  console.log(
-    shouldExportAll
-      ? 'Using all orders including today...'
-      : `Using past orders until ${format(
-          subDays(new Date(), 1),
-          'EEE, dd/MM/yyyy'
-        )}...`
-  )
+  console.log('')
+  console.log('Creating those PDFs...')
+  console.log('Using all unfilfilled orders...')
 
   let orders = await csvToJson().fromFile(filePath)
 
-  orders = orders.filter(hasNotBeenPosted)
-
-  if (!shouldExportAll) {
-    orders = orders.filter(isOrderInPast)
-  }
-
-  // Add items to the array for orders with multiple quantity to make sure we print multiple labels and messages
-  orders = orders.reduce(reduceMultipleQuantityOrders, [])
+  orders = orders
+    .map(formatOrder)
+    .filter((order) => order.awaitingFulfillment)
+    .reduce(reduceMultipleQuantityOrders, [])
 
   if (!orders.length) {
     console.log('No orders were found for printing! :(')
 
     return
   }
+
+  console.log(`${orders.length} orders to print`)
 
   const browser = await puppeteer.launch({
     args: ['--no-sandbox'],
