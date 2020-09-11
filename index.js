@@ -6,6 +6,7 @@ const csvToJson = require('csvtojson')
 
 const maxMessageLength = 250
 const borderColor = 'pink'
+const halloweenBorderColor = 'darkorange'
 const textColor = 'black'
 const date = new Date().toISOString().split('.')[0].replace(/:/g, '-')
 
@@ -109,6 +110,10 @@ const createMessagesHtml = (orders) => {
       padding: 24px;
     }
 
+    .box.halloween {
+      border-color: ${halloweenBorderColor};
+    }
+
     h1 {
       color: ${textColor};
       font-weight: normal;
@@ -150,7 +155,12 @@ const createMessagesHtml = (orders) => {
           )
 
           return `
-            <div class="box">
+            <div class="box ${
+              typeof order.itemName === 'string' &&
+              order.itemName.toLowerCase().includes('halloween')
+                ? 'halloween'
+                : ''
+            }">
               <h1 style="font-size: ${fontSize}em">${message}</h1>
             </div>
           `
@@ -300,6 +310,7 @@ const formatOrder = (o) => {
       o.Variations || o["Item's Custom Text"] || o.message,
       origin
     ),
+    itemName: o['Item Name'] || o['Wix Item Name'],
     awaitingFulfillment: isAwaitingFulfillment(o, origin),
     origin,
     quantity: o.Quantity || o.Qty || o.quantity || 1,
