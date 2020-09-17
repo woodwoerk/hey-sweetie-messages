@@ -15,11 +15,3 @@ The script is run with node, where the second part of the command is this folder
 ```
 node hey-sweetie-messages path/to/EtsyCsvFile.csv
 ```
-
-### Getting all orders
-
-By default we will only include orders from yesterday, use the `--all` flag at the end of the command to include all orders and ignore the order date e.g.
-
-```
-node hey-sweetie-messages path/to/EtsyCsvFile.csv --all
-```
