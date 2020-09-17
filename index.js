@@ -284,11 +284,13 @@ const stripMessageHelpText = (message, origin) => {
     return undefined
   }
 
-  if (origin === 'etsy' || origin === 'wix') {
-    // Etsy and Wix both prepend the help text to the message followed by ':'
-    const [helpText, ...messageParts] = message.split(':')
+  // Etsy and Wix both prepend the help text to the message followed by ':'
+  const match = message.match(
+    /(Personalisation|Add your personal message for the gift card):(.+)/s
+  )
 
-    return messageParts.join(':')
+  if (match && match.length) {
+    return match[2] // Second capturing group of the regular expression i.e. the message after the colon
   }
 
   return message
