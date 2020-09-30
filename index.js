@@ -300,6 +300,12 @@ const stripMessageHelpText = (message, origin) => {
 const formatOrder = (o) => {
   const origin = getOrderOrigin(o)
 
+  // Delete wix state (ENG, SCT, WAL blah) and remove inverted commas from zip
+  if (origin === 'wix') {
+    o['Delivery State'] = "";
+    o['Delivery Zip Code'] = o['Delivery Zip Code'].replace(/\"/g,""); 
+  }
+
   return {
     name: o['Delivery Name'] || o['Delivery Customer'] || o.name,
     address1:
