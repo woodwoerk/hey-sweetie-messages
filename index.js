@@ -312,7 +312,7 @@ const formatOrder = (o) => {
       o.Variations || o["Item's Custom Text"] || o.message,
       origin
     ),
-    itemName: o['Item Name'] || o['Wix Item Name'],
+    itemName: o['Item Name'] || o['Item\'s Name'],
     awaitingFulfillment: isAwaitingFulfillment(o, origin),
     origin,
     quantity: o.Quantity || o.Qty || o.quantity || 1,
