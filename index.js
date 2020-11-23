@@ -7,6 +7,7 @@ const csvToJson = require('csvtojson')
 const maxMessageLength = 250
 const borderColor = 'pink'
 const halloweenBorderColor = 'darkorange'
+const christmasBorderColor = 'forestgreen'
 const textColor = 'black'
 const date = new Date().toISOString().split('.')[0].replace(/:/g, '-')
 
@@ -114,6 +115,10 @@ const createMessagesHtml = (orders) => {
       border-color: ${halloweenBorderColor};
     }
 
+    .box.christmas {
+      border-color: ${christmasBorderColor};
+    }
+
     h1 {
       color: ${textColor};
       font-weight: normal;
@@ -157,8 +162,8 @@ const createMessagesHtml = (orders) => {
           return `
             <div class="box ${
               typeof order.itemName === 'string' &&
-              order.itemName.toLowerCase().includes('halloween')
-                ? 'halloween'
+              order.itemName.toLowerCase().includes('christmas chocolate hamper')
+                ? 'christmas'
                 : ''
             }">
               <h1 style="font-size: ${fontSize}em">${message}</h1>
