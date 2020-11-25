@@ -162,7 +162,7 @@ const createMessagesHtml = (orders) => {
           return `
             <div class="box ${
               typeof order.itemName === 'string' &&
-              order.itemName.toLowerCase().includes('christmas chocolate hamper')
+              order.itemName.toLowerCase().includes('christmas chocolate ')
                 ? 'christmas'
                 : ''
             }">
@@ -291,7 +291,7 @@ const stripMessageHelpText = (message, origin) => {
 
   // Etsy and Wix both prepend the help text to the message followed by ':'
   const match = message.match(
-    /(Personalisation|Add your personal message for the gift card):(.+)/s
+    /(Personalisation|details.|for the gift card):(.+)/s
   )
 
   if (match && match.length) {
